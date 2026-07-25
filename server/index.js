@@ -10,9 +10,17 @@ const app = express();
 connectDB();
 
 app.use(cors({ 
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'https://rentease-frontend.vercel.app'], 
-  credentials: true 
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:3000', 
+    'https://rentease-frontend.vercel.app', 
+    'https://rentease-frontend-dusky.vercel.app' 
+  ], 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 const uploadDir = './uploads';
@@ -48,7 +56,7 @@ const upload = multer({
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/rentals', require('./routes/rentals'));
-app.use('/api/admin', require('./routes/Admin'));
+app.use('/api/admin', require('./routes/Admin'));      
 app.use('/api/categories', require('./routes/categories'));
 
 app.post('/api/upload', upload.array('images', 5), (req, res) => {
