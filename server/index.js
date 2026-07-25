@@ -9,13 +9,26 @@ const connectDB = require('./config/db');
 const app = express();
 connectDB();
 
-app.use(cors({ 
-  origin: [
-    'http://localhost:5173', 
-    'http://localhost:3000', 
-    'https://rentease-frontend.vercel.app', 
-    'https://rentease-frontend-dusky.vercel.app' 
-  ], 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://rentease-frontend.vercel.app',
+  'https://rentease-frontend-dusky.vercel.app'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+
+    
+    if (/^https:\/\/rentease-frontend.*\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS: ' + origin));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
