@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  category: { type: String, enum: ['Furniture', 'Appliance'], required: true },
+  category: { type: String, required: true, trim: true },
   subCategory: String,
   description: String,
   monthlyRent: { type: Number, required: true, min: 0 },

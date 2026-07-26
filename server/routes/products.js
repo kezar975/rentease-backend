@@ -39,7 +39,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', protect, authorize('vendor', 'admin'), [
   body('name').trim().notEmpty(),
-  body('category').isIn(['Furniture', 'Appliance']),
+  body('category').trim().notEmpty().withMessage('Category is required'),
   body('monthlyRent').isNumeric(),
   body('securityDeposit').isNumeric(),
   body('tenureOptions').isArray()
