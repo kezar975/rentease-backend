@@ -8,6 +8,7 @@ const connectDB = require('./config/db');
 
 const app = express();
 connectDB();
+app.set('trust proxy', 1);
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -19,10 +20,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-
     if (allowedOrigins.includes(origin)) return callback(null, true);
-
-    
     if (/^https:\/\/rentease-frontend.*\.vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
@@ -77,8 +75,8 @@ app.post('/api/upload', upload.array('images', 5), (req, res) => {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
     }
-    
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const protocol = process.env.NODE_ENV === 'production' ? 'https' : req.protocol;
+    const baseUrl = `${protocol}://${req.get('host')}`;
     const urls = req.files.map(file => `${baseUrl}/uploads/${file.filename}`);
     
     res.json({ urls });
