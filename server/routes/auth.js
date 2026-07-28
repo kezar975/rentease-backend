@@ -5,6 +5,7 @@ const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { sendResetPasswordEmail } = require('../utils/brevoEmail');
 
 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
@@ -58,4 +59,55 @@ router.get('/me', protect, async (req, res) => {
   res.json(req.user);
 });
 
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+    await user.save();
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
+    await sendResetPasswordEmail(user.email, user.name, resetLink);
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Failed to process request' });
+  }
+});
+
+router.post('/reset-password/:token', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset link' });
+    }
+
+    user.password = password; 
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful! Redirecting to login...' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
 module.exports = router;

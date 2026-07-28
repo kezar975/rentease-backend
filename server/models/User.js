@@ -7,13 +7,12 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6 },
   phone: { type: String, trim: true },
   role: { type: String, enum: ['user', 'vendor', 'admin'], default: 'user' },
-  
 
   businessName: { type: String, trim: true },
-  businessType: { type: String, trim: true }, 
+  businessType: { type: String, trim: true },
   services: [{ type: String }],
   products: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
-  
+
   addresses: [{
     label: String,
     street: String,
@@ -22,7 +21,10 @@ const userSchema = new mongoose.Schema({
     pincode: String,
     isDefault: { type: Boolean, default: false }
   }],
-  isBanned: { type: Boolean, default: false }
+  isBanned: { type: Boolean, default: false },
+
+  resetPasswordToken: String,
+  resetPasswordExpire: Date
 }, { timestamps: true });
 
 userSchema.pre('save', async function() {
