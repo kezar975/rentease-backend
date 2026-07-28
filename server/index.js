@@ -69,6 +69,7 @@ app.use('/api/products', require('./routes/products'));
 app.use('/api/rentals', require('./routes/rentals'));
 app.use('/api/admin', require('./routes/Admin'));      
 app.use('/api/categories', require('./routes/categories'));
+app.use('/api/vendor', require('./routes/vendor'));
 
 app.post('/api/upload', upload.array('images', 5), (req, res) => {
   try {
