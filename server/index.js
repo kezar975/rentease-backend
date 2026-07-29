@@ -1,10 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
 const connectDB = require('./config/db');
+
+const upload = require('./middleware/Upload'); 
 
 const app = express();
 connectDB();
@@ -24,7 +23,6 @@ app.use(cors({
     if (/^https:\/\/rentease-frontend.*\.vercel\.app$/.test(origin)) {
       return callback(null, true);
     }
-
     callback(new Error('Not allowed by CORS: ' + origin));
   },
   credentials: true,
@@ -34,40 +32,10 @@ app.use(cors({
 
 app.use(express.json());
 
-const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, 
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (extname && mimetype) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only images (JPEG, PNG, WebP) are allowed'));
-    }
-  }
-});
-
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/rentals', require('./routes/rentals'));
-app.use('/api/admin', require('./routes/Admin'));      
+app.use('/api/admin', require('./routes/admin'));       // <-- Lowercase 'admin' (Zaroori hai)
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/vendor', require('./routes/vendor'));
 
@@ -76,24 +44,22 @@ app.post('/api/upload', upload.array('images', 5), (req, res) => {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });
     }
-        const protocol = process.env.NODE_ENV === 'production' ? 'https' : req.protocol;
-    const baseUrl = `${protocol}://${req.get('host')}`;
-    const urls = req.files.map(file => `${baseUrl}/uploads/${file.filename}`);
+    
+    const urls = req.files.map(file => file.path);
     
     res.json({ urls });
   } catch (error) {
-    res.status(500).json({ message: 'Image upload failed' });
+    console.error('Upload error:', error);
+    res.status(500).json({ message: 'Image upload failed: ' + error.message });
   }
 });
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/api/health', (req, res) => res.json({ status: 'OK', service: 'RentEase Backend' }));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
   
-  if (err instanceof multer.MulterError) {
+  if (err.message && (err.message.includes('images') || err.message.includes('file'))) {
     return res.status(400).json({ message: err.message });
   }
   
