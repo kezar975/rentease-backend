@@ -81,6 +81,29 @@ router.put('/rentals/:id', async (req, res) => {
   }
 });
 
+router.get('/maintenance', async (req, res) => {
+  try {
+    const vendorRentals = await Rental.find({ vendor: req.user._id }).select('_id');
+    const rentalIds = vendorRentals.map(r => r._id);
+
+    const requests = await Maintenance.find({ rental: { $in: rentalIds } })
+      .populate('user', 'name email')
+      .populate({
+        path: 'rental',
+        populate: [
+          { path: 'user', select: 'name email' },
+          { path: 'product', select: 'name monthlyRent' }
+        ]
+      })
+      .sort({ createdAt: -1 });
+
+    res.json(requests);
+  } catch (err) {
+    console.error('Vendor maintenance GET error:', err);
+    res.status(500).json({ message: 'Failed to fetch maintenance requests' });
+  }
+});
+
 router.put('/maintenance/:id', async (req, res) => {
   try {
     const request = await Maintenance.findById(req.params.id).populate({
@@ -106,4 +129,5 @@ router.put('/maintenance/:id', async (req, res) => {
     res.status(500).json({ message: 'Failed to update maintenance request' });
   }
 });
+
 module.exports = router;
