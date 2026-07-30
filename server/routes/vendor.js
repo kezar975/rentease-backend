@@ -7,6 +7,7 @@ const Maintenance = require('../models/Maintenance');
 
 router.use(protect, authorize('vendor'));
 
+// ---- Products ----
 router.get('/products', async (req, res) => {
   try {
     const products = await Product.find({ vendor: req.user._id });
@@ -48,6 +49,7 @@ router.delete('/products/:id', async (req, res) => {
   }
 });
 
+// ---- Rentals ----
 router.get('/rentals', async (req, res) => {
   try {
     const rentals = await Rental.find({ vendor: req.user._id })
@@ -59,6 +61,29 @@ router.get('/rentals', async (req, res) => {
   }
 });
 
+router.put('/rentals/:id', async (req, res) => {
+  try {
+    const { status, damageNote, hasDamage } = req.body;
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (damageNote !== undefined) updateData.damageNote = damageNote;
+    if (hasDamage !== undefined) updateData.hasDamage = hasDamage;
+
+    const rental = await Rental.findOneAndUpdate(
+      { _id: req.params.id, vendor: req.user._id },
+      updateData,
+      { new: true }
+    ).populate('user', 'name email').populate('product', 'name category monthlyRent');
+
+    if (!rental) return res.status(404).json({ message: 'Rental not found' });
+    res.json(rental);
+  } catch (err) {
+    console.error('Error updating rental:', err);
+    res.status(500).json({ message: 'Failed to update rental' });
+  }
+});
+
+// ---- Maintenance ----
 router.get('/maintenance', async (req, res) => {
   try {
     const myRentals = await Rental.find({ vendor: req.user._id }).select('_id');

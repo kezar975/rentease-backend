@@ -6,8 +6,8 @@ const sendResetPasswordEmail = async (toEmail, toName, resetLink) => {
       'https://api.brevo.com/v3/smtp/email',
       {
         sender: {
-          name: 'SwapStyle',
-          email: process.env.BREVO_SENDER_EMAIL || 'af52d5001@smtp-brevo.com'
+          name: 'kezar',
+          email: process.env.BREVO_SENDER_EMAIL
         },
         to: [{ email: toEmail, name: toName || toEmail }],
         subject: 'Reset your RentEase password',
