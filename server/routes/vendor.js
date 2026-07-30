@@ -7,7 +7,6 @@ const Maintenance = require('../models/Maintenance');
 
 router.use(protect, authorize('vendor'));
 
-// ---- Products ----
 router.get('/products', async (req, res) => {
   try {
     const products = await Product.find({ vendor: req.user._id });
@@ -49,7 +48,6 @@ router.delete('/products/:id', async (req, res) => {
   }
 });
 
-// ---- Rentals ----
 router.get('/rentals', async (req, res) => {
   try {
     const rentals = await Rental.find({ vendor: req.user._id })
@@ -83,26 +81,29 @@ router.put('/rentals/:id', async (req, res) => {
   }
 });
 
-// ---- Maintenance ----
-router.get('/maintenance', async (req, res) => {
+router.put('/maintenance/:id', async (req, res) => {
   try {
-    const myRentals = await Rental.find({ vendor: req.user._id }).select('_id');
-    const rentalIds = myRentals.map(r => r._id);
+    const request = await Maintenance.findById(req.params.id).populate({
+      path: 'rental',
+      populate: { path: 'product', select: 'vendor name' }
+    });
 
-    const requests = await Maintenance.find({ rental: { $in: rentalIds } })
-      .populate({
-        path: 'rental',
-        populate: [
-          { path: 'user', select: 'name email' },
-          { path: 'product', select: 'name category' }
-        ]
-      })
-      .sort({ createdAt: -1 });
+    if (!request) return res.status(404).json({ message: 'Maintenance request not found' });
 
-    res.json(requests);
+    if (String(request.rental.vendor || request.rental.product?.vendor) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to update this request' });
+    }
+
+    request.status = req.body.status;
+    await request.save();
+    await request.populate({
+      path: 'rental',
+      populate: [{ path: 'user', select: 'name' }, { path: 'product', select: 'name' }]
+    });
+
+    res.json(request);
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch maintenance requests' });
+    res.status(500).json({ message: 'Failed to update maintenance request' });
   }
 });
-
 module.exports = router;
